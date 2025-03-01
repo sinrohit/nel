@@ -19,11 +19,12 @@
         # Process the configuration in a NixOS-like way
         config = lib.evalModules {
           modules = [
-            ./modules/base.nix  # Contains the module structure definition
-            ./modules/programs/zsh.nix  # ZSH-specific module
-            ./modules/programs/vim.nix  # Vim-specific module
+            ./modules/base.nix       # Contains the module structure definition
+            ./modules/activation.nix  # NixOS-like activation system
+            ./modules/programs/zsh.nix    # ZSH-specific module
+            ./modules/programs/vim.nix    # Vim-specific module
             # Add more program-specific modules here
-            userConfig          # User's configuration
+            userConfig               # User's configuration
           ];
           # Provide access to nixpkgs to the modules
           specialArgs = { inherit pkgs lib; };
@@ -35,8 +36,22 @@
         # Extract the environment packages from the evaluated config
         environmentPackages = evaluatedConfig.environment.systemPackages;
         
-        # Create home files directly in the build script instead of during derivation build
-        homeFiles = evaluatedConfig.home.file;
+        # Get sorted activation scripts
+        activationScripts = let
+          toposort = import ./modules/toposort.nix { inherit lib; };
+          allScripts = 
+            builtins.attrValues evaluatedConfig.system.activationScripts
+            ++ builtins.attrValues evaluatedConfig.home.activationScripts;
+          getDeps = script: 
+            map (dep: 
+              if evaluatedConfig.system.activationScripts ? ${dep} then
+                evaluatedConfig.system.activationScripts.${dep}
+              else if evaluatedConfig.home.activationScripts ? ${dep} then
+                evaluatedConfig.home.activationScripts.${dep}
+              else
+                throw "Activation script '${dep}' not found"
+            ) script.deps;
+        in toposort.toposort getDeps allScripts;
 
         # Create a shell script that sets up the environment
         envScript = pkgs.writeShellScriptBin "load-env" ''
@@ -44,21 +59,11 @@
           TMP_DIR=$(mktemp -d -t nix-env-loader-XXXXXXX)
           trap 'rm -rf "$TMP_DIR"' EXIT
           
-          # Create home files in the temp directory
-          ${lib.concatStringsSep "\n" (lib.mapAttrsToList (name: value: ''
-            mkdir -p "$(dirname "$TMP_DIR/${name}")"
-            ${if value.source != null then ''
-              cp -r "${value.source}" "$TMP_DIR/${name}"
-            '' else ''
-              cat > "$TMP_DIR/${name}" << 'EOL'
-          ${value.text}
-          EOL
-            ''}
-            # Make files executable if they start with a shebang
-            if [[ -f "$TMP_DIR/${name}" && $(head -c 2 "$TMP_DIR/${name}") = "#!" ]]; then
-              chmod +x "$TMP_DIR/${name}"
-            fi
-          '') homeFiles)}
+          # Run all activation scripts in dependency order
+          ${lib.concatMapStrings (script: ''
+            echo "Running activation script: ${script.name}"
+            ${script.text}
+          '') activationScripts}
           
           # Set up environment variables
           export PATH=${lib.makeBinPath environmentPackages}:$PATH
@@ -68,8 +73,7 @@
             else "export ${name}=${value}"
           ) evaluatedConfig.environment.variables)}
           
-          # Set HOME to point to the temp directory just for configuration files
-          # This allows using the config files without modifying the real home directory
+          # Set XDG_CONFIG_HOME to point to the temp directory
           export XDG_CONFIG_HOME="$TMP_DIR/.config"
           
           # Print available packages
@@ -78,8 +82,7 @@
           
           # If ZSH is enabled, use it as the shell
           ${lib.optionalString evaluatedConfig.programs.zsh.enable ''
-            # For zsh, we need to set ZDOTDIR to our temp directory so it reads our .zshrc
-            # rather than using --rcfile which is a bash option
+            # For zsh, we need to set ZDOTDIR to our temp directory
             if [ $# -gt 0 ]; then
               ZDOTDIR="$TMP_DIR" exec ${pkgs.zsh}/bin/zsh -c "exec \"\$@\""
             else
