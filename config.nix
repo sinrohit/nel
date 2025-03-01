@@ -8,44 +8,44 @@
     gh
     gnumake
     python3
-    
+
     # System utilities
     htop
     ripgrep
     fd
     bat
   ];
-  
+
   environment.variables = {
     EDITOR = "vim";
     LANG = "en_US.UTF-8";
     # Add other environment variables
   };
-  
+
   environment.shellAliases = {
     ll = "ls -la";
     gst = "git status";
     gco = "git checkout";
   };
-  
+
   # ZSH Configuration
   programs.zsh = {
     enable = true;
     enableAutosuggestions = true;
     enableSyntaxHighlighting = true;
     historySize = 50000;
-    
+
     oh-my-zsh = {
       enable = true;
       theme = "agnoster";
-      plugins = [ 
-        "git" 
-        "docker" 
-        "kubectl" 
+      plugins = [
+        "git"
+        "docker"
+        "kubectl"
         "python"
       ];
     };
-    
+
     initExtra = ''
       # Custom ZSH configuration
       setopt AUTO_CD
@@ -57,7 +57,7 @@
       }
     '';
   };
-  
+
   # Vim Configuration
   programs.vim = {
     enable = true;
@@ -67,7 +67,7 @@
       vim-airline
       nerdtree
     ];
-    
+
     extraConfig = ''
       " Custom Vim settings
       set number
@@ -81,7 +81,7 @@
       map <C-n> :NERDTreeToggle<CR>
     '';
   };
-  
+
   # Home files
   home.file = {
     ".gitconfig".text = ''
@@ -93,7 +93,7 @@
       [color]
         ui = auto
     '';
-    
+
     # Example of creating a custom script
     ".local/bin/update-system".text = ''
       #!/bin/sh

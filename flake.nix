@@ -15,16 +15,16 @@
 
         # Load the user's configuration
         userConfig = import ./config.nix;
-        
+
         # Process the configuration in a NixOS-like way
         config = lib.evalModules {
           modules = [
-            ./modules/base.nix       # Contains the module structure definition
-            ./modules/activation.nix  # NixOS-like activation system
-            ./modules/programs/zsh.nix    # ZSH-specific module
-            ./modules/programs/vim.nix    # Vim-specific module
+            ./modules/base.nix # Contains the module structure definition
+            ./modules/activation.nix # NixOS-like activation system
+            ./modules/programs/zsh.nix # ZSH-specific module
+            ./modules/programs/vim.nix # Vim-specific module
             # Add more program-specific modules here
-            userConfig               # User's configuration
+            userConfig # User's configuration
           ];
           # Provide access to nixpkgs to the modules
           specialArgs = { inherit pkgs lib; };
@@ -32,26 +32,30 @@
 
         # Extract the evaluated config
         evaluatedConfig = config.config;
-        
+
         # Extract the environment packages from the evaluated config
         environmentPackages = evaluatedConfig.environment.systemPackages;
-        
+
         # Get sorted activation scripts
-        activationScripts = let
-          toposort = import ./modules/toposort.nix { inherit lib; };
-          allScripts = 
-            builtins.attrValues evaluatedConfig.system.activationScripts
-            ++ builtins.attrValues evaluatedConfig.home.activationScripts;
-          getDeps = script: 
-            map (dep: 
-              if evaluatedConfig.system.activationScripts ? ${dep} then
-                evaluatedConfig.system.activationScripts.${dep}
-              else if evaluatedConfig.home.activationScripts ? ${dep} then
-                evaluatedConfig.home.activationScripts.${dep}
-              else
-                throw "Activation script '${dep}' not found"
-            ) script.deps;
-        in toposort.toposort getDeps allScripts;
+        activationScripts =
+          let
+            toposort = import ./modules/toposort.nix { inherit lib; };
+            allScripts =
+              builtins.attrValues evaluatedConfig.system.activationScripts
+              ++ builtins.attrValues evaluatedConfig.home.activationScripts;
+            getDeps = script:
+              map
+                (dep:
+                  if evaluatedConfig.system.activationScripts ? ${dep} then
+                    evaluatedConfig.system.activationScripts.${dep}
+                  else if evaluatedConfig.home.activationScripts ? ${dep} then
+                    evaluatedConfig.home.activationScripts.${dep}
+                  else
+                    throw "Activation script '${dep}' not found"
+                )
+                script.deps;
+          in
+          toposort.toposort getDeps allScripts;
 
         # Create a shell script that sets up the environment
         envScript = pkgs.writeShellScriptBin "load-env" ''

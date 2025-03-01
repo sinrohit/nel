@@ -10,7 +10,7 @@ rec {
     let
       # Convert list to graph representation
       nodeSet = listToAttrs (map (node: { name = node.name; value = node; }) nodes);
-      
+
       # Helper function to visit nodes in DFS order
       visit = visited: visiting: result: node:
         let
@@ -24,21 +24,21 @@ rec {
           let
             # Mark this node as currently being visited
             newVisiting = [ name ] ++ visiting;
-            
+
             # Process all dependencies first
             depsResult = foldl'
               (acc: dep:
-                if acc.visited != [] && elem dep.name acc.visited then
+                if acc.visited != [ ] && elem dep.name acc.visited then
                   acc
                 else
                   visit acc.visited acc.newVisiting acc.result dep
               )
-              { visited = []; newVisiting = newVisiting; result = []; }
+              { visited = [ ]; newVisiting = newVisiting; result = [ ]; }
               (getDeps node);
-              
+
             # Mark this node as fully visited
             newVisited = [ name ] ++ depsResult.visited;
-            
+
             # Add this node to the result after its dependencies
             newResult = [ node ] ++ depsResult.result;
           in
@@ -47,7 +47,7 @@ rec {
             visiting = visiting;
             result = newResult;
           };
-      
+
       # Visit all nodes
       result = foldl'
         (acc: node:
@@ -56,7 +56,7 @@ rec {
           else
             visit acc.visited acc.visiting acc.result node
         )
-        { visited = []; visiting = []; result = []; }
+        { visited = [ ]; visiting = [ ]; result = [ ]; }
         nodes;
     in
     result.result;
