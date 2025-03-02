@@ -1,15 +1,10 @@
-# config.nix
-{ pkgs, lib, ... }:
-
+{ pkgs, ... }:
 {
   environment.systemPackages = with pkgs; [
-    # Development tools
     git
     gh
     gnumake
     python3
-
-    # System utilities
     htop
     ripgrep
     fd
@@ -19,70 +14,48 @@
   environment.variables = {
     EDITOR = "vim";
     LANG = "en_US.UTF-8";
-    # Add other environment variables
   };
 
   environment.shellAliases = {
     ll = "ls -la";
     gst = "git status";
-    gco = "git checkout";
   };
 
-  # ZSH Configuration
   programs.zsh = {
     enable = true;
     enableAutosuggestions = true;
     enableSyntaxHighlighting = true;
-    historySize = 50000;
-
     oh-my-zsh = {
       enable = true;
       theme = "agnoster";
-      plugins = [
-        "git"
-        "docker"
-        "kubectl"
-        "python"
-      ];
+      plugins = [ "git" "docker" "kubectl" "python" ];
     };
-
     initExtra = ''
-      # Custom ZSH configuration
-      setopt AUTO_CD
-      setopt CORRECT
-      
-      # Custom functions
-      function mkcd() {
-        mkdir -p "$1" && cd "$1"
-      }
     '';
   };
 
-  # Vim Configuration
   programs.vim = {
     enable = true;
     defaultEditor = true;
-    plugins = with pkgs.vimPlugins; [
-      vim-sensible
-      vim-airline
-      nerdtree
-    ];
-
+    plugins = with pkgs.vimPlugins; [ vim-sensible vim-airline nerdtree ];
     extraConfig = ''
-      " Custom Vim settings
-      set number
-      set relativenumber
+      set number relativenumber
       syntax on
-      set tabstop=2
-      set shiftwidth=2
-      set expandtab
-      
-      " NERDTree mappings
+      set tabstop=2 shiftwidth=2 expandtab
       map <C-n> :NERDTreeToggle<CR>
     '';
   };
 
-  # Home files
+  programs.starship = {
+    enable = false;
+    settings = {
+      add_newline = false;
+      prompt_order = [ "username" "directory" "git_branch" "git_status" "cmd_duration" ];
+    };
+  };
+
+  programs.zoxide.enable = true;
+
   home.file = {
     ".gitconfig".text = ''
       [user]
@@ -90,16 +63,6 @@
         email = your.email@example.com
       [core]
         editor = vim
-      [color]
-        ui = auto
-    '';
-
-    # Example of creating a custom script
-    ".local/bin/update-system".text = ''
-      #!/bin/sh
-      echo "Updating system packages..."
-      nix flake update
-      home-manager switch
     '';
   };
 }
