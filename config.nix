@@ -35,11 +35,11 @@
   };
 
   programs.vim = {
-    enable = true;
+    enable = false;
     defaultEditor = true;
-    plugins = with pkgs.vimPlugins; [ vim-sensible vim-airline nerdtree ];
+    plugins = with pkgs.vimPlugins; [ ];
     extraConfig = ''
-      set number relativenumber
+      set number
       syntax on
       set tabstop=2 shiftwidth=2 expandtab
       map <C-n> :NERDTreeToggle<CR>
@@ -59,8 +59,8 @@
   home.file = {
     ".gitconfig".text = ''
       [user]
-        name = Your Name
-        email = your.email@example.com
+        name = Rohit Singh
+        email = rsrohitsingh682@gmail.com
       [core]
         editor = vim
     '';

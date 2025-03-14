@@ -27,36 +27,36 @@ in
     home.activationScripts.zshSetup = {
       name = "zshSetup";
       text = ''
-            cat > "$TMP_DIR/.zshrc" << 'EOF'
-            HISTSIZE=${toString cfg.historySize}
-            HISTFILE=${cfg.histFile}
-            SAVEHIST=${toString cfg.historySize}
+        cat > "$TMP_DIR/.zshrc" << 'EOF'
+        HISTSIZE=${toString cfg.historySize}
+        HISTFILE=${cfg.histFile}
+        SAVEHIST=${toString cfg.historySize}
 
-            ${optionalString cfg.oh-my-zsh.enable ''
-              export ZSH=${pkgs.oh-my-zsh}/share/oh-my-zsh
-              ZSH_THEME="${cfg.oh-my-zsh.theme}"
-              plugins=(${concatStringsSep " " cfg.oh-my-zsh.plugins})
-              source $ZSH/oh-my-zsh.sh
-            ''}
+        ${optionalString cfg.oh-my-zsh.enable ''
+          export ZSH=${pkgs.oh-my-zsh}/share/oh-my-zsh
+          ZSH_THEME="${cfg.oh-my-zsh.theme}"
+          plugins=(${concatStringsSep " " cfg.oh-my-zsh.plugins})
+          source $ZSH/oh-my-zsh.sh
+        ''}
 
-            ${optionalString cfg.enableAutosuggestions ''
-              source ${pkgs.zsh-autosuggestions}/share/zsh-autosuggestions/zsh-autosuggestions.zsh
-            ''}
+        ${optionalString cfg.enableAutosuggestions ''
+          source ${pkgs.zsh-autosuggestions}/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+        ''}
 
-            ${optionalString cfg.enableSyntaxHighlighting ''
-              source ${pkgs.zsh-syntax-highlighting}/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-            ''}
-
-            ${lib.optionalstring config.programs.zoxide.enable ''
+        ${optionalString cfg.enableSyntaxHighlighting ''
+          source ${pkgs.zsh-syntax-highlighting}/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+        ''}
+            
+        ${optionalString config.programs.zoxide.enable ''
           eval "$(zoxide init zsh)"
         ''}
 
-           ${lib.optionalstring config.programs.starship.enable ''
+        ${optionalString config.programs.starship.enable ''
           eval "$(starship init zsh)"
         ''}
 
-            ${cfg.initExtra}
-            EOF
+        ${cfg.initExtra}
+        EOF
       '';
       deps = [ "homeFiles" ];
     };

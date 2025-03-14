@@ -6,8 +6,8 @@
     flake-parts.url = "github:hercules-ci/flake-parts";
   };
 
-  outputs = { self, nixpkgs, flake-parts, ... }:
-    flake-parts.lib.mkFlake { inherit self; } {
+  outputs = inputs@{ self, ... }:
+    inputs.flake-parts.lib.mkFlake { inherit inputs; } {
       systems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
 
       imports = [
@@ -22,7 +22,7 @@
         # Define a package that includes all specified packages
         packages.default = pkgs.buildEnv {
           name = "env-packages";
-          paths = config.environment.systemPackages; # Or replace with your package list
+          paths = config.environment.systemPackages;
         };
 
         # Apps output for `nix run`
@@ -31,16 +31,8 @@
           program =
             let
               environmentPackages = config.environment.systemPackages;
-              activationScripts =
-                let
-                  toposort = import ./modules/lib/toposort.nix { inherit lib; };
-                  allScripts = builtins.attrValues config.system.activationScripts
-                    ++ builtins.attrValues config.home.activationScripts;
-                  getDeps = script: map
-                    (dep: config.system.activationScripts.${dep} or config.home.activationScripts.${dep} or (throw "Activation script '${dep}' not found"))
-                    script.deps;
-                in
-                toposort.toposort getDeps allScripts;
+              allScripts = builtins.attrValues config.system.activationScripts
+                ++ builtins.attrValues config.home.activationScripts;
 
               envScript = pkgs.writeShellScriptBin "load-env" ''
                 TMP_DIR=$(mktemp -d -t nix-env-loader-XXXXXXX)
@@ -49,7 +41,7 @@
                 ${lib.concatMapStrings (script: ''
                   echo "Running activation script: ${script.name}"
                   ${script.text}
-                '') activationScripts}
+                '') allScripts}
 
                 export PATH=${lib.makeBinPath environmentPackages}:$PATH
                 ${lib.concatStringsSep "\n" (lib.mapAttrsToList (name: value:
@@ -59,9 +51,6 @@
                 ) config.environment.variables)}
 
                 export XDG_CONFIG_HOME="$TMP_DIR/.config"
-
-                echo "Environment loaded with packages:"
-                echo "${lib.concatMapStringsSep "\n" (pkg: "- ${pkg.name}") environmentPackages}"
 
                 ${lib.optionalString config.programs.zsh.enable ''
                   ZDOTDIR="$TMP_DIR" exec ${pkgs.zsh}/bin/zsh "$@" || exec ${pkgs.bash}/bin/bash "$@"
